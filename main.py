@@ -2,16 +2,18 @@ from time import time, sleep
 import threading
 import json
 
-from mpu6050 import mpu6050
 import numpy as np
+from mpu6050 import mpu6050
 
-from calibration import calibrate_rotation, calibrate_offsets
+from calibration import calibrate_or_get_from_file
+from ton_lowpass_realtime import butter_signal
 
-np.set_printoptions(
-    precision=3,
-    sign=' ',
-    suppress=True,
-)
+if __name__ == '__main__':
+    np.set_printoptions(
+        precision=3,
+        sign=' ',
+        suppress=True,
+    )
 
 
 def accel_data_to_list(accel_data):
@@ -26,8 +28,7 @@ def listen_to_accel(port: int = 0x68) -> tuple[dict, callable]:
         accel_data = sensor.get_accel_data()
         return accel_data_to_list(accel_data)
 
-    calibration_rotation = calibrate_rotation(sensor)
-    calibration_offsets = calibrate_offsets(sensor, 1000)
+    calibration_rotation, calibration_offsets = calibrate_or_get_from_file(sensor)
 
     data = {
         'velocity': [0, 0, 0],
@@ -37,18 +38,17 @@ def listen_to_accel(port: int = 0x68) -> tuple[dict, callable]:
 
     def update_data():
         timestamp = time()
-        smoothing_amount = 100
-        last_readings = [[0, 0, 0] for x in range(0, smoothing_amount)]
-        elapsed = 0
-        collected_data = {
-            'timestamp': [],
-            'acceleration': [],
-            'velocity': [],
-            'position': [],
-        }
-        print('go')
+        if __name__ == '__main__':
+            elapsed = 0
+            collected_data = {
+                'timestamp': [],
+                'acceleration': [],
+                'velocity': [],
+                'position': [],
+            }
+            print('go')
 
-        while (not data_channel['interrupt']) and elapsed < 5:
+        while (not data_channel['interrupt']) and (__name__ == '__main__' and elapsed < 5):
             dirty_accelerometer_data = get_accel_data_as_list()
 
             accelerometer_data = dirty_accelerometer_data
@@ -60,16 +60,14 @@ def listen_to_accel(port: int = 0x68) -> tuple[dict, callable]:
             # subtract gravity
             acceleration = np.subtract(accelerometer_data, gravity)
 
-            # smoothing
-            last_readings = last_readings[1:]
-            last_readings.append(acceleration)
-
-            acceleration = np.mean(last_readings, axis=0)
-
             new_timestamp = time()
             time_delta_from_last_reading = new_timestamp - timestamp
-            elapsed += time_delta_from_last_reading
+            if __name__ == '__main__':
+                elapsed += time_delta_from_last_reading
             timestamp = new_timestamp
+
+            # smoothing
+            acceleration = butter_signal(10.0, time_delta_from_last_reading, acceleration)
 
             # https://www.real-world-physics-problems.com/rectilinear-motion.html
             displacement_term_1 = np.multiply(np.multiply(0.5, acceleration), time_delta_from_last_reading ** 2)
@@ -79,20 +77,15 @@ def listen_to_accel(port: int = 0x68) -> tuple[dict, callable]:
             velocity_delta = np.multiply(acceleration, time_delta_from_last_reading)
             data['velocity'] = np.add(data['velocity'], velocity_delta)
 
-            # print(acceleration)
-            # print(data['velocity'])
-            # print(data['position'])
-            collected_data['timestamp'].append(elapsed)
-            collected_data['acceleration'].append(acceleration.tolist())
-            collected_data['velocity'].append(data['velocity'].tolist())
-            collected_data['position'].append(data['position'].tolist())
+            if __name__ == '__main__':
+                collected_data['timestamp'].append(elapsed)
+                collected_data['acceleration'].append(acceleration)
+                collected_data['velocity'].append(data['velocity'].tolist())
+                collected_data['position'].append(data['position'].tolist())
 
-        # print(collected_data)
-
-        with open("output.json", "w") as outfile:
-            outfile.write(json.dumps(collected_data))
-
-    # update_data()
+        if __name__ == '__main__':
+            with open('output.json', 'w') as outfile:
+                outfile.write(json.dumps(collected_data))
 
     read_thread = threading.Thread(target=update_data)
     read_thread.start()

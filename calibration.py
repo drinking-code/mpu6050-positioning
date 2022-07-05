@@ -1,4 +1,8 @@
+import json
+from os.path import isfile
+
 import numpy as np
+from mpu6050 import mpu6050
 
 
 def accel_data_to_list(accel_data):
@@ -22,6 +26,8 @@ offsets_calibration_result = np.array([])
 # leave robot still on a level plane for calibration
 # calibrated_data = calibration_result.dot(accelerometer_data)
 def calibrate_rotation(sensor, calibration_samples_amount=300):
+    if __name__ == '__main__':
+        calibration_samples_amount = 1000
     global gravity
     gravity = np.array([0, 0, sensor.GRAVITIY_MS2 * -1])
     calibration_ground_truth = gravity[:]
@@ -52,6 +58,8 @@ def calibrate_rotation(sensor, calibration_samples_amount=300):
 # leave accelerometer still on a level plane for calibration
 # calibrated_data = np.add(calibration_result, accelerometer_data)
 def calibrate_offsets(sensor, calibration_samples_amount=500):
+    if __name__ == '__main__':
+        calibration_samples_amount = 5000
     global gravity
     calibration_ground_truth = np.array([0, 0, 0])
     calibration_samples = get_n_samples(sensor, calibration_samples_amount)
@@ -63,3 +71,26 @@ def calibrate_offsets(sensor, calibration_samples_amount=500):
     global offsets_calibration_result
     offsets_calibration_result = np.subtract(calibration_ground_truth, calibration_sample)
     return offsets_calibration_result
+
+
+def calibrate_or_get_from_file(sensor):
+    calibration_filename = 'calibration.json'
+    if isfile(calibration_filename):
+        with open(calibration_filename, 'r') as calibration_file:
+            calibration = json.load(calibration_file)
+            calibration_rotation = np.array(calibration['rotation'])
+            calibration_offsets = np.array(calibration['offsets'])
+    else:
+        calibration_rotation = calibrate_rotation(sensor)
+        calibration_offsets = calibrate_offsets(sensor, 1000)
+        with open(calibration_filename, 'w') as calibration_file:
+            calibration_file.write(json.dumps({
+                'rotation': calibration_rotation.tolist(),
+                'offsets': calibration_offsets.tolist(),
+            }))
+
+    return calibration_rotation, calibration_offsets
+
+
+if __name__ == '__main__':
+    calibrate_or_get_from_file(mpu6050(0x68))

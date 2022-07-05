@@ -24,6 +24,13 @@ with open('output.json', 'r') as outfile:
                        color=plt.cm.Set1(2), linewidth=line_width)
 
         [axs[ii][i].legend() for ii in range(0, len(axs))]
+        axis_min_limit = .5
+        y_lim_accel_bottom, y_lim_accel_top = axs[0][i].get_ylim()
+        if y_lim_accel_bottom > -axis_min_limit:
+            axs[0][i].set_ylim(bottom=-axis_min_limit)
+        if y_lim_accel_top < axis_min_limit:
+            axs[0][i].set_ylim(top=axis_min_limit)
+
         axs[0][i].set_ylabel('Acceleration [m$\cdot$s$^{-2}$]', fontsize=16)
         axs[1][i].set_ylabel('Velocity [m$\cdot$s$^{-1}$]', fontsize=16)
         axs[2][i].set_ylabel('Displacement [m]', fontsize=16)
