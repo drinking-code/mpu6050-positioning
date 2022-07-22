@@ -12,14 +12,20 @@ with open('output.json', 'r') as outfile:
 
     names = ['X', 'Y', 'Z']
 
+    index = 0
+    for timestamp in data['timestamp']:
+        if timestamp > 20.3:
+            break
+        index += 1
+
     for i in range(0, 3):
-        axs[0][i].plot(data['timestamp'], list(map(lambda x: x[i], data['acceleration'])),
+        axs[0][i].plot(data['timestamp'][index:], list(map(lambda x: x[i], data['acceleration'][index:])),
                        label="Acceleration " + names[i],
                        color=plt.cm.Set1(0), linewidth=line_width)
-        axs[1][i].plot(data['timestamp'], list(map(lambda x: x[i], data['velocity'])),
+        axs[1][i].plot(data['timestamp'][index:], list(map(lambda x: x[i], data['velocity'][index:])),
                        label="Velocity " + names[i],
                        color=plt.cm.Set1(1), linewidth=line_width)
-        axs[2][i].plot(data['timestamp'], list(map(lambda x: x[i], data['position'])),
+        axs[2][i].plot(data['timestamp'][index:], list(map(lambda x: x[i], data['position'][index:])),
                        label="Position " + names[i],
                        color=plt.cm.Set1(2), linewidth=line_width)
 

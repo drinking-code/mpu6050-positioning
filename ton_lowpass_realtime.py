@@ -1,4 +1,5 @@
 import numpy as np
+from dmp_aux.Quaternion import XYZVector as V
 
 
 def tons_lowpass_filter(cutoff_freq, sample_time, x0, x1, x2, y1, y2):
@@ -40,9 +41,9 @@ last_sample_filtered = [0, 0, 0]
 second_last_sample_filtered = [0, 0, 0]
 
 
-def butter_signal(cutoff_freq, sample_time, sample):
+def butter_signal(sample_time, sample):
+    return [current_sample for i, current_sample in enumerate(sample)]
     """
-    :param cutoff_freq: Cutoff frequency
     :param sample_time: Time delta to last sample
     :param sample: Sample (unfiltered)
     :return: Sample (filtered)
@@ -55,7 +56,7 @@ def butter_signal(cutoff_freq, sample_time, sample):
     if second_last_sample is not None:
         current_sample_filtered = [
             tons_lowpass_filter(
-                cutoff_freq, sample_time,
+                10.0, sample_time,
                 current_sample, last_sample[i], second_last_sample[i],
                 last_sample_filtered[i], second_last_sample_filtered[i]
             ) for i, current_sample in enumerate(sample)
@@ -70,3 +71,45 @@ def butter_signal(cutoff_freq, sample_time, sample):
     last_sample = sample
 
     return current_sample_filtered
+
+
+last_vector = None
+second_last_vector = None
+last_vector_filtered = V(0, 0, 0)
+second_last_vector_filtered = V(0, 0, 0)
+
+
+def butter_vector_dmp_signal(sample_time, sample):
+    """
+    :param sample_time: Time delta to last sample
+    :param sample: Sample (unfiltered)
+    :return: Sample (filtered)
+    """
+    global last_vector
+    global second_last_vector
+    global last_vector_filtered
+    global second_last_vector_filtered
+
+    if second_last_vector is not None:
+        current_vector_filtered = [
+            tons_lowpass_filter(
+                50.0, sample_time,
+                current_sample, getattr(last_vector, i), getattr(second_last_vector, i),
+                getattr(last_vector_filtered, i), getattr(second_last_vector_filtered, i)
+            ) for i, current_sample in [('x', sample.x), ('y', sample.y), ('z', sample.z)]
+        ]
+        current_vector_filtered = V(
+            current_vector_filtered[0],
+            current_vector_filtered[1],
+            current_vector_filtered[2]
+        )
+    else:
+        current_vector_filtered = V(0, 0, 0)
+
+    second_last_vector_filtered = last_vector_filtered
+    last_vector_filtered = current_vector_filtered
+
+    second_last_vector = last_vector
+    last_vector = sample
+
+    return current_vector_filtered

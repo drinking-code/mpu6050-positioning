@@ -1,8 +1,11 @@
 import json
 from os.path import isfile
+from time import time
 
 import numpy as np
 from mpu6050 import mpu6050
+
+from ton_lowpass_realtime import butter_signal
 
 
 def accel_data_to_list(accel_data):
@@ -11,9 +14,15 @@ def accel_data_to_list(accel_data):
 
 def get_n_samples(sensor, n):
     samples = []
-    for i in range(0, n):
-        sensor_data = sensor.get_accel_data()
-        samples.append(accel_data_to_list(sensor_data))
+    timestamp = time()
+    for i in range(0, n + 3):
+        sensor_data = accel_data_to_list(sensor.get_accel_data())
+        new_timestamp = time()
+        time_delta_from_last_reading = new_timestamp - timestamp
+        # sensor_data_buttered = butter_signal(time_delta_from_last_reading, sensor_data)
+        timestamp = new_timestamp
+        samples.append(sensor_data)
+
     return np.array(samples)
 
 
